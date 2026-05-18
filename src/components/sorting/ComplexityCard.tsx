@@ -42,8 +42,15 @@ export default function ComplexityCard({ info }: Props) {
         </div>
 
         <div className="bg-[#F8FAFC] p-5 rounded-xl border border-blue-100">
-          <h3 className="text-sm font-bold text-[#2563EB] uppercase tracking-wider mb-2">Real World Analogy</h3>
-          <p className="text-gray-700 text-sm italic">"{info.analogy}"</p>
+          <h3 className="text-sm font-bold text-[#2563EB] uppercase tracking-wider mb-3">Real World Scenarios</h3>
+          <ul className="list-none space-y-3">
+            {info.analogies.map((analogy, i) => (
+               <li key={i} className="text-gray-700 text-sm italic relative pl-4">
+                 <span className="absolute left-0 top-0 text-[#f59e0b] font-bold">•</span>
+                 "{analogy}"
+               </li>
+            ))}
+          </ul>
         </div>
       </div>
 

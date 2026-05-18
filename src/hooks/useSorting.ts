@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSortingStore } from '@/store/sortingStore';
 import { generateBubbleSortSteps } from '@/lib/algorithms/bubbleSort';
 import { generateQuickSortSteps } from '@/lib/algorithms/quickSort';
+import { generateSelectionSortSteps } from '@/lib/algorithms/selectionSort';
+import { generateInsertionSortSteps } from '@/lib/algorithms/insertionSort';
+import { generateMergeSortSteps } from '@/lib/algorithms/mergeSort';
+import { generateHeapSortSteps } from '@/lib/algorithms/heapSort';
+import { generateRadixSortSteps } from '@/lib/algorithms/radixSort';
 import { SortingAlgorithmType } from '@/types/sorting.types';
 
 export const useSorting = (algorithm: SortingAlgorithmType = "bubble-sort") => {
@@ -26,6 +31,21 @@ export const useSorting = (algorithm: SortingAlgorithmType = "bubble-sort") => {
     switch (algorithm) {
       case "quick-sort":
         steps = generateQuickSortSteps(array);
+        break;
+      case "selection-sort":
+        steps = generateSelectionSortSteps(array);
+        break;
+      case "insertion-sort":
+        steps = generateInsertionSortSteps(array);
+        break;
+      case "merge-sort":
+        steps = generateMergeSortSteps(array);
+        break;
+      case "heap-sort":
+        steps = generateHeapSortSteps(array);
+        break;
+      case "radix-sort":
+        steps = generateRadixSortSteps(array);
         break;
       case "bubble-sort":
       default:

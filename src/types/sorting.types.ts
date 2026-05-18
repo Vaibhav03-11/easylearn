@@ -21,7 +21,7 @@ export interface AlgorithmInfo {
   name: string;
   description: string;
   intuition: string;
-  analogy: string;
+  analogies: string[];
   timeComplexity: {
     best: string;
     average: string;
