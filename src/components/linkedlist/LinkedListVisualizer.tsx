@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useLinkedListStore } from '@/store/linkedListStore';
 import LinkedListCanvas from './LinkedListCanvas';
 import LinkedListOperations from './LinkedListOperations';
+import CodeExecutionView from './CodeExecutionView';
 import { LinkedListType } from '@/types/linkedlist.types';
 
 interface Props {
@@ -53,6 +54,7 @@ export default function LinkedListVisualizer({ type }: Props) {
         isCircular={type === 'circular'}
         isDoubly={type === 'doubly'}
       />
+      <CodeExecutionView step={currentAnimationStep} />
       <LinkedListOperations />
     </div>
   );

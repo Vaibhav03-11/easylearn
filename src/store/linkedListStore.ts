@@ -71,36 +71,37 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     const { nodes } = get();
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'insert-beginning';
+    const code = [
+      'void insertAtBeginning(int data) {',
+      '    Node newNode = new Node(data);',
+      '    newNode.next = head;',
+      '    head = newNode;',
+      '}',
+    ];
 
-    // Step 1: Show current state
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false, isNew: false })),
-      headIndex: nodes.length > 0 ? 0 : null,
-      tailIndex: null,
-      currentPointer: null,
+      headIndex: nodes.length > 0 ? 0 : null, tailIndex: null, currentPointer: null,
       logMessage: `Current list has ${nodes.length} nodes. We want to insert ${value} at the beginning.`,
       operation: op,
+      codeContext: { code, highlightLine: 0, variables: { data: String(value), head: nodes.length > 0 ? String(nodes[0].value) : 'NULL' } },
     });
 
-    // Step 2: Create new node
     const newNode = createNode(value, { isNew: true, isHighlighted: true });
     steps.push({
       nodes: [newNode, ...nodes.map(n => ({ ...n, isHighlighted: false, isNew: false }))],
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: 0,
-      logMessage: `Created new node with value ${value} at address ${newNode.address}. Setting its 'next' pointer to the old head.`,
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `Created new node with value ${value}. Setting newNode.next = head.`,
       operation: op,
+      codeContext: { code, highlightLine: 2, variables: { data: String(value), newNode: String(value), 'newNode.next': nodes.length > 0 ? String(nodes[0].value) : 'NULL', head: nodes.length > 0 ? String(nodes[0].value) : 'NULL' } },
     });
 
-    // Step 3: Update head
     steps.push({
       nodes: [{ ...newNode, isNew: false, isHighlighted: true }, ...nodes.map(n => ({ ...n, isHighlighted: false, isNew: false }))],
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: 0,
-      logMessage: `HEAD now points to the new node (${value}). Insert at beginning complete! Time: O(1).`,
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `HEAD now points to ${value}. Insert at beginning complete! O(1).`,
       operation: op,
+      codeContext: { code, highlightLine: 3, variables: { data: String(value), newNode: String(value), head: String(value) } },
     });
 
     const finalNodes = [{ ...newNode, isNew: false, isHighlighted: false }, ...nodes];
@@ -111,40 +112,99 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     const { nodes } = get();
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'insert-end';
+    const code = [
+      'void insertAtEnd(int data) {',
+      '    Node newNode = new Node(data);',
+      '    if (head == null) {',
+      '        head = newNode;',
+      '        return;',
+      '    }',
+      '    Node temp = head;',
+      '    while (temp.next != null)',
+      '        temp = temp.next;',
+      '    temp.next = newNode;',
+      '}',
+    ];
 
+    // Step 1: Function called
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false, isNew: false })),
-      headIndex: nodes.length > 0 ? 0 : null,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: `We want to insert ${value} at the end. We must traverse to the last node first.`,
+      headIndex: nodes.length > 0 ? 0 : null, tailIndex: null, currentPointer: null,
+      logMessage: `insertAtEnd(${value}) called. Creating new node.`,
       operation: op,
+      codeContext: { code, highlightLine: 1, variables: { data: String(value), newNode: String(value) } },
     });
 
-    // Traverse to end
-    for (let i = 0; i < nodes.length; i++) {
+    // Step 2: Check if head is null
+    if (nodes.length === 0) {
+      const newNode = createNode(value, { isNew: true, isHighlighted: true });
       steps.push({
-        nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i, isNew: false })),
-        headIndex: 0,
-        tailIndex: null,
-        currentPointer: i,
-        logMessage: i < nodes.length - 1
-          ? `Traversing... Current node: ${nodes[i].value} (${nodes[i].address}). Moving to next node.`
-          : `Reached the last node: ${nodes[i].value}. Its 'next' is currently NULL.`,
+        nodes: [newNode], headIndex: 0, tailIndex: null, currentPointer: 0,
+        logMessage: `head == null is TRUE. Setting head = newNode(${value}). Done!`,
         operation: op,
+        codeContext: { code, highlightLine: 3, variables: { data: String(value), newNode: String(value), head: String(value) } },
       });
+      set({ animationSteps: steps, currentStep: 0, nodes: [{ ...newNode, isNew: false, isHighlighted: false }] });
+      return;
     }
 
-    // Add new node
+    steps.push({
+      nodes: nodes.map(n => ({ ...n, isHighlighted: false })),
+      headIndex: 0, tailIndex: null, currentPointer: null,
+      logMessage: `head == null is FALSE (head = ${nodes[0].value}). Skip to traversal.`,
+      operation: op,
+      codeContext: { code, highlightLine: 2, variables: { data: String(value), newNode: String(value), head: String(nodes[0].value) } },
+    });
+
+    // Step 3: temp = head
+    steps.push({
+      nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === 0 })),
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `Setting temp = head. temp now points to node ${nodes[0].value}.`,
+      operation: op,
+      codeContext: { code, highlightLine: 6, variables: { data: String(value), newNode: String(value), temp: String(nodes[0].value), 'temp.next': nodes.length > 1 ? String(nodes[1].value) : 'NULL' } },
+    });
+
+    // Step 4: while loop traversal
+    for (let i = 0; i < nodes.length; i++) {
+      const hasNext = i < nodes.length - 1;
+      if (hasNext) {
+        // Check condition: temp.next != null → TRUE
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
+          headIndex: 0, tailIndex: null, currentPointer: i,
+          logMessage: `temp.next != null → TRUE (temp.next = ${nodes[i + 1].value}). Continue loop.`,
+          operation: op,
+          codeContext: { code, highlightLine: 7, variables: { data: String(value), temp: String(nodes[i].value), 'temp.next': String(nodes[i + 1].value) } },
+        });
+        // Move temp = temp.next
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i + 1 })),
+          headIndex: 0, tailIndex: null, currentPointer: i + 1,
+          logMessage: `temp = temp.next → temp now points to ${nodes[i + 1].value}.`,
+          operation: op,
+          codeContext: { code, highlightLine: 8, variables: { data: String(value), temp: String(nodes[i + 1].value), 'temp.next': i + 1 < nodes.length - 1 ? String(nodes[i + 2].value) : 'NULL' } },
+        });
+      } else {
+        // Check condition: temp.next != null → FALSE
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
+          headIndex: 0, tailIndex: null, currentPointer: i,
+          logMessage: `temp.next != null → FALSE (temp.next = NULL). Exit loop.`,
+          operation: op,
+          codeContext: { code, highlightLine: 7, variables: { data: String(value), temp: String(nodes[i].value), 'temp.next': 'NULL' } },
+        });
+      }
+    }
+
+    // Step 5: temp.next = newNode
     const newNode = createNode(value, { isNew: true, isHighlighted: true });
     const withNew = [...nodes.map(n => ({ ...n, isHighlighted: false, isNew: false })), newNode];
     steps.push({
-      nodes: withNew,
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: withNew.length - 1,
-      logMessage: `Created new node ${value} at ${newNode.address}. Last node's 'next' now points to it. Insert at end complete! Time: O(n).`,
+      nodes: withNew, headIndex: 0, tailIndex: null, currentPointer: withNew.length - 1,
+      logMessage: `temp.next = newNode(${value}). Node ${value} added at the end! Time: O(n).`,
       operation: op,
+      codeContext: { code, highlightLine: 9, variables: { data: String(value), temp: String(nodes[nodes.length - 1].value), 'temp.next': String(value), newNode: String(value) } },
     });
 
     const finalNodes = [...nodes, { ...newNode, isNew: false, isHighlighted: false }];

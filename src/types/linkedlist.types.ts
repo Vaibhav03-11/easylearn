@@ -29,6 +29,11 @@ export interface LLAnimationStep {
   logMessage: string;
   operation: LinkedListOperation;
   codeHighlightLine?: number; // Which pseudocode line to highlight
+  codeContext?: {
+    code: string[];           // Array of code lines to display
+    highlightLine: number;    // 0-indexed line to highlight
+    variables: Record<string, string>; // Variable name -> current value
+  };
 }
 
 export interface LinkedListAlgorithmInfo {
