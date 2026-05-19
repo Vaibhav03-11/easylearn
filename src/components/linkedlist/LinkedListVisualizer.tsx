@@ -48,13 +48,22 @@ export default function LinkedListVisualizer({ type }: Props) {
 
   return (
     <div className="w-full flex flex-col items-center">
-      <LinkedListCanvas
-        step={currentAnimationStep}
-        nodes={nodes}
-        isCircular={type === 'circular'}
-        isDoubly={type === 'doubly'}
-      />
-      <CodeExecutionView step={currentAnimationStep} />
+      {/* Side-by-side: Graph (left) + Code Execution (right) */}
+      <div className={`w-full ${currentAnimationStep?.codeContext ? 'grid grid-cols-1 lg:grid-cols-5 gap-4' : ''}`}>
+        <div className={currentAnimationStep?.codeContext ? 'lg:col-span-3' : ''}>
+          <LinkedListCanvas
+            step={currentAnimationStep}
+            nodes={nodes}
+            isCircular={type === 'circular'}
+            isDoubly={type === 'doubly'}
+          />
+        </div>
+        {currentAnimationStep?.codeContext && (
+          <div className="lg:col-span-2">
+            <CodeExecutionView step={currentAnimationStep} />
+          </div>
+        )}
+      </div>
       <LinkedListOperations />
     </div>
   );
