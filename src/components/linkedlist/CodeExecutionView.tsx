@@ -6,6 +6,30 @@ interface Props {
   step: LLAnimationStep | null;
 }
 
+// Substitutes variable values directly into the code line
+// e.g., "Node temp = head;" → "Node temp = head;"  with annotation "// temp=10, head=10"
+function buildAnnotatedLine(line: string, variables: Record<string, string>): {
+  codePart: string;
+  annotation: string;
+} {
+  // Build annotation showing current values of variables that appear in this line
+  const relevantVars: string[] = [];
+
+  for (const [name, value] of Object.entries(variables)) {
+    // Check if the variable name appears in the code line (as a word boundary)
+    // Handle compound names like "temp.next" → look for "temp" or "temp.next"
+    const simpleCheck = line.includes(name) || line.includes(name.split('.')[0]);
+    if (simpleCheck && value !== undefined) {
+      relevantVars.push(`${name} = ${value}`);
+    }
+  }
+
+  return {
+    codePart: line,
+    annotation: relevantVars.length > 0 ? relevantVars.join(', ') : '',
+  };
+}
+
 export default function CodeExecutionView({ step }: Props) {
   if (!step?.codeContext) return null;
 
@@ -26,9 +50,13 @@ export default function CodeExecutionView({ step }: Props) {
 
       {/* Code Panel */}
       <div className="bg-[#0F172A] overflow-x-auto flex-1">
-        <pre className="text-[13px] font-mono leading-[26px] p-0">
+        <pre className="text-[13px] font-mono leading-[28px] p-0">
           {code.map((line, idx) => {
             const isActive = idx === highlightLine;
+            const { annotation } = isActive
+              ? buildAnnotatedLine(line, variables)
+              : { annotation: '' };
+
             return (
               <div
                 key={idx}
@@ -45,14 +73,20 @@ export default function CodeExecutionView({ step }: Props) {
                   {idx + 1}
                 </span>
                 {/* Code content */}
-                <code className={`flex-1 px-1 whitespace-pre ${
+                <code className={`px-1 whitespace-pre ${
                   isActive ? 'text-amber-100 font-semibold' : 'text-slate-400'
                 }`}>
                   {line}
                 </code>
-                {/* Active indicator */}
+                {/* Inline value annotation on the active line */}
+                {isActive && annotation && (
+                  <span className="ml-3 text-[11px] text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded font-mono flex-shrink-0 whitespace-nowrap">
+                    // {annotation}
+                  </span>
+                )}
+                {/* Active arrow */}
                 {isActive && (
-                  <span className="text-amber-400 pr-2 text-[10px] animate-pulse flex-shrink-0">◀</span>
+                  <span className="text-amber-400 pr-2 text-[10px] animate-pulse flex-shrink-0 ml-auto">◀</span>
                 )}
               </div>
             );
@@ -64,7 +98,7 @@ export default function CodeExecutionView({ step }: Props) {
       <div className="bg-[#1E293B] border-t border-slate-700 p-3">
         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-          Variables
+          Live Variables
         </h4>
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(variables).map(([name, value]) => (
@@ -72,7 +106,7 @@ export default function CodeExecutionView({ step }: Props) {
               <span className="text-[11px] font-mono text-blue-300">{name}</span>
               <span className="text-[10px] text-slate-500">=</span>
               <span className={`text-[11px] font-mono font-bold ${
-                value === 'NULL'
+                value === 'NULL' || value.includes('freed')
                   ? 'text-red-400'
                   : 'text-emerald-300'
               }`}>
