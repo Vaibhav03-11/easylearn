@@ -216,25 +216,46 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'insert-position';
     const pos = Math.max(0, Math.min(position, nodes.length));
+    const code = [
+      'void insertAtPosition(int data, int pos) {',
+      '    Node newNode = new Node(data);',
+      '    if (pos == 0) { insertAtBeginning(data); return; }',
+      '    Node temp = head;',
+      '    for (int i = 0; i < pos - 1; i++)',
+      '        temp = temp.next;',
+      '    newNode.next = temp.next;',
+      '    temp.next = newNode;',
+      '}',
+    ];
 
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: `Inserting ${value} at position ${pos}. We need to traverse to position ${pos - 1}.`,
+      headIndex: 0, tailIndex: null, currentPointer: null,
+      logMessage: `insertAtPosition(${value}, ${pos}) called.`,
       operation: op,
+      codeContext: { code, highlightLine: 1, variables: { data: String(value), pos: String(pos), newNode: String(value) } },
     });
 
-    for (let i = 0; i < pos && i < nodes.length; i++) {
+    if (pos > 0) {
       steps.push({
-        nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
-        headIndex: 0,
-        tailIndex: null,
-        currentPointer: i,
-        logMessage: `Traversing... at index ${i}, node value: ${nodes[i].value}.`,
+        nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === 0 })),
+        headIndex: 0, tailIndex: null, currentPointer: 0,
+        logMessage: `pos != 0. Setting temp = head (${nodes[0].value}).`,
         operation: op,
+        codeContext: { code, highlightLine: 3, variables: { data: String(value), pos: String(pos), temp: String(nodes[0].value) } },
       });
+    }
+
+    for (let i = 0; i < pos && i < nodes.length; i++) {
+      if (i < pos - 1) {
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i + 1 })),
+          headIndex: 0, tailIndex: null, currentPointer: i + 1,
+          logMessage: `i=${i} < pos-1=${pos - 1}. temp = temp.next → ${nodes[i + 1]?.value}.`,
+          operation: op,
+          codeContext: { code, highlightLine: 5, variables: { data: String(value), i: String(i), temp: String(nodes[i + 1]?.value ?? 'NULL') } },
+        });
+      }
     }
 
     const newNode = createNode(value, { isNew: true, isHighlighted: true });
@@ -242,16 +263,14 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     newNodes.splice(pos, 0, newNode);
     steps.push({
       nodes: newNodes.map((n, idx) => ({ ...n, isHighlighted: idx === pos, isNew: idx === pos })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: pos,
-      logMessage: `Inserted ${value} at position ${pos}. Adjusted previous node's 'next' pointer. Time: O(n).`,
+      headIndex: 0, tailIndex: null, currentPointer: pos,
+      logMessage: `newNode.next = temp.next; temp.next = newNode. Inserted ${value} at position ${pos}. O(n).`,
       operation: op,
+      codeContext: { code, highlightLine: 7, variables: { data: String(value), temp: pos > 0 ? String(nodes[pos - 1]?.value) : 'head', 'temp.next': String(value), newNode: String(value) } },
     });
 
     set({
-      animationSteps: steps,
-      currentStep: 0,
+      animationSteps: steps, currentStep: 0,
       nodes: newNodes.map(n => ({ ...n, isHighlighted: false, isNew: false })),
     });
   },
@@ -261,23 +280,37 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     if (nodes.length === 0) return;
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'delete-beginning';
+    const code = [
+      'void deleteAtBeginning() {',
+      '    if (head == null) return;',
+      '    Node temp = head;',
+      '    head = head.next;',
+      '    temp = null; // freed',
+      '}',
+    ];
 
     steps.push({
       nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === 0 })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: 0,
-      logMessage: `Deleting the head node (${nodes[0].value}). HEAD will move to the next node.`,
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `head != null. temp = head (${nodes[0].value}).`,
       operation: op,
+      codeContext: { code, highlightLine: 2, variables: { head: String(nodes[0].value), temp: String(nodes[0].value) } },
+    });
+
+    steps.push({
+      nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === 1 })),
+      headIndex: nodes.length > 1 ? 1 : null, tailIndex: null, currentPointer: 0,
+      logMessage: `head = head.next → ${nodes.length > 1 ? nodes[1].value : 'NULL'}.`,
+      operation: op,
+      codeContext: { code, highlightLine: 3, variables: { head: nodes.length > 1 ? String(nodes[1].value) : 'NULL', temp: String(nodes[0].value) } },
     });
 
     steps.push({
       nodes: nodes.map((n, idx) => ({ ...n, isDeleting: idx === 0, isHighlighted: idx === 1 })),
-      headIndex: 1,
-      tailIndex: null,
-      currentPointer: 0,
-      logMessage: `Node ${nodes[0].value} removed. HEAD now points to ${nodes.length > 1 ? nodes[1].value : 'NULL'}. Time: O(1).`,
+      headIndex: nodes.length > 1 ? 1 : null, tailIndex: null, currentPointer: 0,
+      logMessage: `temp (${nodes[0].value}) freed. Delete complete! O(1).`,
       operation: op,
+      codeContext: { code, highlightLine: 4, variables: { head: nodes.length > 1 ? String(nodes[1].value) : 'NULL', temp: 'null (freed)' } },
     });
 
     set({ animationSteps: steps, currentStep: 0, nodes: nodes.slice(1) });
@@ -288,32 +321,68 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     if (nodes.length === 0) return;
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'delete-end';
+    const code = [
+      'void deleteAtEnd() {',
+      '    if (head == null) return;',
+      '    if (head.next == null) { head = null; return; }',
+      '    Node temp = head;',
+      '    while (temp.next.next != null)',
+      '        temp = temp.next;',
+      '    temp.next = null;',
+      '}',
+    ];
 
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: `Deleting the last node. We must traverse to the second-to-last node.`,
+      headIndex: 0, tailIndex: null, currentPointer: null,
+      logMessage: `deleteAtEnd() called. head != null.`,
       operation: op,
+      codeContext: { code, highlightLine: 1, variables: { head: String(nodes[0].value) } },
     });
 
-    for (let i = 0; i < nodes.length; i++) {
-      steps.push({
-        nodes: nodes.map((n, idx) => ({
-          ...n,
-          isHighlighted: idx === i,
-          isDeleting: i === nodes.length - 1 && idx === i,
-        })),
-        headIndex: 0,
-        tailIndex: null,
-        currentPointer: i,
-        logMessage: i < nodes.length - 1
-          ? `Traversing... at node ${nodes[i].value}.`
-          : `Reached last node ${nodes[i].value}. Removing it and setting previous node's 'next' to NULL. Time: O(n).`,
-        operation: op,
-      });
+    steps.push({
+      nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === 0 })),
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `temp = head (${nodes[0].value}).`,
+      operation: op,
+      codeContext: { code, highlightLine: 3, variables: { temp: String(nodes[0].value), 'temp.next': nodes.length > 1 ? String(nodes[1].value) : 'NULL' } },
+    });
+
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const hasNextNext = i < nodes.length - 2;
+      if (hasNextNext) {
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
+          headIndex: 0, tailIndex: null, currentPointer: i,
+          logMessage: `temp.next.next != null → TRUE. Continue.`,
+          operation: op,
+          codeContext: { code, highlightLine: 4, variables: { temp: String(nodes[i].value), 'temp.next': String(nodes[i + 1].value) } },
+        });
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i + 1 })),
+          headIndex: 0, tailIndex: null, currentPointer: i + 1,
+          logMessage: `temp = temp.next → ${nodes[i + 1].value}.`,
+          operation: op,
+          codeContext: { code, highlightLine: 5, variables: { temp: String(nodes[i + 1].value), 'temp.next': String(nodes[i + 2]?.value ?? 'NULL') } },
+        });
+      } else {
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
+          headIndex: 0, tailIndex: null, currentPointer: i,
+          logMessage: `temp.next.next == null → FALSE. Exit loop. temp = ${nodes[i].value}.`,
+          operation: op,
+          codeContext: { code, highlightLine: 4, variables: { temp: String(nodes[i].value), 'temp.next': String(nodes[i + 1].value) } },
+        });
+      }
     }
+
+    steps.push({
+      nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: false, isDeleting: idx === nodes.length - 1 })),
+      headIndex: 0, tailIndex: null, currentPointer: nodes.length - 2,
+      logMessage: `temp.next = null. Node ${nodes[nodes.length - 1].value} removed. O(n).`,
+      operation: op,
+      codeContext: { code, highlightLine: 6, variables: { temp: String(nodes[nodes.length - 2]?.value ?? nodes[0].value), 'temp.next': 'null' } },
+    });
 
     set({ animationSteps: steps, currentStep: 0, nodes: nodes.slice(0, -1) });
   },
@@ -323,32 +392,60 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     if (nodes.length === 0 || position < 0 || position >= nodes.length) return;
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'delete-position';
+    const code = [
+      'void deleteAtPosition(int pos) {',
+      '    if (head == null) return;',
+      '    if (pos == 0) { deleteAtBeginning(); return; }',
+      '    Node temp = head;',
+      '    for (int i = 0; i < pos - 1; i++)',
+      '        temp = temp.next;',
+      '    Node delNode = temp.next;',
+      '    temp.next = delNode.next;',
+      '    delNode = null; // freed',
+      '}',
+    ];
 
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: `Deleting node at position ${position}. Traversing to find it.`,
+      headIndex: 0, tailIndex: null, currentPointer: null,
+      logMessage: `deleteAtPosition(${position}) called.`,
       operation: op,
+      codeContext: { code, highlightLine: 0, variables: { pos: String(position) } },
     });
 
-    for (let i = 0; i <= position; i++) {
+    steps.push({
+      nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === 0 })),
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `temp = head (${nodes[0].value}).`,
+      operation: op,
+      codeContext: { code, highlightLine: 3, variables: { pos: String(position), temp: String(nodes[0].value) } },
+    });
+
+    for (let i = 0; i < position - 1 && i < nodes.length - 1; i++) {
       steps.push({
-        nodes: nodes.map((n, idx) => ({
-          ...n,
-          isHighlighted: idx === i,
-          isDeleting: i === position && idx === i,
-        })),
-        headIndex: 0,
-        tailIndex: null,
-        currentPointer: i,
-        logMessage: i < position
-          ? `Traversing... at index ${i}, node: ${nodes[i].value}.`
-          : `Found node ${nodes[i].value} at position ${position}. Removing it and re-linking. Time: O(n).`,
+        nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i + 1 })),
+        headIndex: 0, tailIndex: null, currentPointer: i + 1,
+        logMessage: `i=${i} < pos-1=${position - 1}. temp = temp.next → ${nodes[i + 1].value}.`,
         operation: op,
+        codeContext: { code, highlightLine: 5, variables: { pos: String(position), i: String(i), temp: String(nodes[i + 1].value) } },
       });
     }
+
+    steps.push({
+      nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === position })),
+      headIndex: 0, tailIndex: null, currentPointer: position,
+      logMessage: `delNode = temp.next = ${nodes[position].value}.`,
+      operation: op,
+      codeContext: { code, highlightLine: 6, variables: { temp: String(nodes[Math.max(0, position - 1)].value), delNode: String(nodes[position].value) } },
+    });
+
+    steps.push({
+      nodes: nodes.map((n, idx) => ({ ...n, isDeleting: idx === position })),
+      headIndex: 0, tailIndex: null, currentPointer: position,
+      logMessage: `temp.next = delNode.next. Node ${nodes[position].value} removed. O(n).`,
+      operation: op,
+      codeContext: { code, highlightLine: 8, variables: { temp: String(nodes[Math.max(0, position - 1)].value), 'temp.next': position < nodes.length - 1 ? String(nodes[position + 1].value) : 'NULL', delNode: 'null (freed)' } },
+    });
 
     const finalNodes = [...nodes];
     finalNodes.splice(position, 1);
@@ -359,14 +456,26 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     const { nodes } = get();
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'search';
+    const code = [
+      'int search(int key) {',
+      '    Node temp = head;',
+      '    int pos = 0;',
+      '    while (temp != null) {',
+      '        if (temp.data == key)',
+      '            return pos;',
+      '        temp = temp.next;',
+      '        pos++;',
+      '    }',
+      '    return -1; // not found',
+      '}',
+    ];
 
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false, isFound: false })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: `Searching for value ${value}. Starting from HEAD.`,
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `search(${value}) called. temp = head (${nodes[0]?.value}).`,
       operation: op,
+      codeContext: { code, highlightLine: 1, variables: { key: String(value), temp: String(nodes[0]?.value ?? 'NULL'), pos: '0' } },
     });
 
     let found = false;
@@ -374,34 +483,40 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
       if (nodes[i].value === value) {
         steps.push({
           nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i, isFound: idx === i })),
-          headIndex: 0,
-          tailIndex: null,
-          currentPointer: i,
-          logMessage: `Found ${value} at index ${i} (address: ${nodes[i].address})! Search complete. Time: O(n).`,
+          headIndex: 0, tailIndex: null, currentPointer: i,
+          logMessage: `temp.data (${nodes[i].value}) == key (${value}) → TRUE! Found at pos ${i}. Return ${i}.`,
           operation: op,
+          codeContext: { code, highlightLine: 5, variables: { key: String(value), temp: String(nodes[i].value), 'temp.data': String(nodes[i].value), pos: String(i), result: String(i) } },
         });
         found = true;
         break;
       } else {
         steps.push({
           nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
-          headIndex: 0,
-          tailIndex: null,
-          currentPointer: i,
-          logMessage: `Checking node at index ${i}: value is ${nodes[i].value}. Not a match. Moving to next.`,
+          headIndex: 0, tailIndex: null, currentPointer: i,
+          logMessage: `temp.data (${nodes[i].value}) != key (${value}). Move to next.`,
           operation: op,
+          codeContext: { code, highlightLine: 4, variables: { key: String(value), temp: String(nodes[i].value), 'temp.data': String(nodes[i].value), pos: String(i) } },
         });
+        if (i < nodes.length - 1) {
+          steps.push({
+            nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i + 1 })),
+            headIndex: 0, tailIndex: null, currentPointer: i + 1,
+            logMessage: `temp = temp.next → ${nodes[i + 1].value}. pos++.`,
+            operation: op,
+            codeContext: { code, highlightLine: 6, variables: { key: String(value), temp: String(nodes[i + 1].value), pos: String(i + 1) } },
+          });
+        }
       }
     }
 
     if (!found) {
       steps.push({
         nodes: nodes.map(n => ({ ...n, isHighlighted: false })),
-        headIndex: 0,
-        tailIndex: null,
-        currentPointer: null,
-        logMessage: `Value ${value} not found in the linked list. Reached NULL. Time: O(n).`,
+        headIndex: 0, tailIndex: null, currentPointer: null,
+        logMessage: `temp == null. Value ${value} not found. Return -1.`,
         operation: op,
+        codeContext: { code, highlightLine: 9, variables: { key: String(value), temp: 'NULL', result: '-1' } },
       });
     }
 
@@ -412,34 +527,49 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     const { nodes } = get();
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'traverse';
+    const code = [
+      'void traverse() {',
+      '    Node temp = head;',
+      '    while (temp != null) {',
+      '        print(temp.data);',
+      '        temp = temp.next;',
+      '    }',
+      '}',
+    ];
 
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: 'Starting traversal from HEAD. We visit every node exactly once.',
+      headIndex: 0, tailIndex: null, currentPointer: 0,
+      logMessage: `traverse() called. temp = head (${nodes[0]?.value}).`,
       operation: op,
+      codeContext: { code, highlightLine: 1, variables: { temp: String(nodes[0]?.value ?? 'NULL') } },
     });
 
     for (let i = 0; i < nodes.length; i++) {
       steps.push({
         nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
-        headIndex: 0,
-        tailIndex: null,
-        currentPointer: i,
-        logMessage: `Visiting node ${i}: value = ${nodes[i].value}, address = ${nodes[i].address}${i < nodes.length - 1 ? '. Moving to next.' : '. Next is NULL.'}`,
+        headIndex: 0, tailIndex: null, currentPointer: i,
+        logMessage: `temp != null → TRUE. print(${nodes[i].value}).`,
         operation: op,
+        codeContext: { code, highlightLine: 3, variables: { temp: String(nodes[i].value), 'temp.data': String(nodes[i].value), output: nodes.slice(0, i + 1).map(n => n.value).join(' → ') } },
       });
+      if (i < nodes.length - 1) {
+        steps.push({
+          nodes: nodes.map((n, idx) => ({ ...n, isHighlighted: idx === i + 1 })),
+          headIndex: 0, tailIndex: null, currentPointer: i + 1,
+          logMessage: `temp = temp.next → ${nodes[i + 1].value}.`,
+          operation: op,
+          codeContext: { code, highlightLine: 4, variables: { temp: String(nodes[i + 1].value) } },
+        });
+      }
     }
 
     steps.push({
       nodes: nodes.map(n => ({ ...n, isHighlighted: false })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: `Traversal complete! Visited all ${nodes.length} nodes. Time: O(n).`,
+      headIndex: 0, tailIndex: null, currentPointer: null,
+      logMessage: `temp == null. Traversal complete! Visited ${nodes.length} nodes. O(n).`,
       operation: op,
+      codeContext: { code, highlightLine: 2, variables: { temp: 'NULL', output: nodes.map(n => n.value).join(' → ') + ' → NULL' } },
     });
 
     set({ animationSteps: steps, currentStep: 0 });
@@ -451,37 +581,58 @@ export const useLinkedListStore = create<LinkedListState>((set, get) => ({
     const steps: LLAnimationStep[] = [];
     const op: LinkedListOperation = 'reverse';
     const arr = [...nodes.map(n => ({ ...n, isHighlighted: false }))];
+    const code = [
+      'void reverse() {',
+      '    Node prev = null;',
+      '    Node current = head;',
+      '    Node next = null;',
+      '    while (current != null) {',
+      '        next = current.next;',
+      '        current.next = prev;',
+      '        prev = current;',
+      '        current = next;',
+      '    }',
+      '    head = prev;',
+      '}',
+    ];
 
     steps.push({
       nodes: [...arr],
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: 'Reversing the linked list. We use three pointers: prev, current, and next.',
+      headIndex: 0, tailIndex: null, currentPointer: null,
+      logMessage: `reverse() called. prev = null, current = head (${arr[0].value}).`,
       operation: op,
+      codeContext: { code, highlightLine: 2, variables: { prev: 'NULL', current: String(arr[0].value), next: 'NULL' } },
     });
 
-    // Simple visual: show swaps step by step
-    for (let i = 0; i < Math.floor(arr.length / 2); i++) {
-      const j = arr.length - 1 - i;
+    // Walk through the reversal
+    for (let i = 0; i < arr.length; i++) {
+      const nextVal = i < arr.length - 1 ? String(arr[i + 1].value) : 'NULL';
+      const prevVal = i > 0 ? String(arr[i - 1].value) : 'NULL';
+
       steps.push({
-        nodes: arr.map((n, idx) => ({ ...n, isHighlighted: idx === i || idx === j })),
-        headIndex: 0,
-        tailIndex: null,
-        currentPointer: i,
-        logMessage: `Reversing pointer at node ${arr[i].value}. Now it points backwards instead of forwards.`,
+        nodes: arr.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
+        headIndex: 0, tailIndex: null, currentPointer: i,
+        logMessage: `next = current.next (${nextVal}). current.next = prev (${prevVal}).`,
         operation: op,
+        codeContext: { code, highlightLine: 6, variables: { prev: prevVal, current: String(arr[i].value), next: nextVal, 'current.next': prevVal } },
+      });
+
+      steps.push({
+        nodes: arr.map((n, idx) => ({ ...n, isHighlighted: idx === i })),
+        headIndex: 0, tailIndex: null, currentPointer: i,
+        logMessage: `prev = current (${arr[i].value}). current = next (${nextVal}).`,
+        operation: op,
+        codeContext: { code, highlightLine: 8, variables: { prev: String(arr[i].value), current: nextVal, next: nextVal } },
       });
     }
 
     const reversed = [...arr].reverse();
     steps.push({
       nodes: reversed.map(n => ({ ...n, isHighlighted: false })),
-      headIndex: 0,
-      tailIndex: null,
-      currentPointer: null,
-      logMessage: `List reversed! HEAD now points to ${reversed[0].value}. Time: O(n).`,
+      headIndex: 0, tailIndex: null, currentPointer: null,
+      logMessage: `current == null. head = prev (${reversed[0].value}). Reversed! O(n).`,
       operation: op,
+      codeContext: { code, highlightLine: 10, variables: { prev: String(reversed[0].value), current: 'NULL', head: String(reversed[0].value) } },
     });
 
     set({ animationSteps: steps, currentStep: 0, nodes: reversed });

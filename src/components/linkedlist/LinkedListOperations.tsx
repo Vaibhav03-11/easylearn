@@ -117,6 +117,50 @@ export default function LinkedListOperations() {
 
   return (
     <div className="w-full space-y-4 mt-4">
+      {/* Playback Controls — at the top for instant access */}
+      {animationSteps.length > 0 && (
+        <div className="flex flex-col md:flex-row items-center gap-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2">
+            <button onClick={handleStepBackward} className="p-2 rounded-full hover:bg-gray-100 text-gray-700 disabled:opacity-50" disabled={isAnimating && !isPaused}>
+              <StepBack size={20} />
+            </button>
+            {!isAnimating || isPaused ? (
+              <button onClick={handlePlay} className="p-3 rounded-full bg-[#2563EB] hover:bg-blue-700 text-white shadow-md transition-transform hover:scale-105" title="Play">
+                <Play size={24} fill="currentColor" />
+              </button>
+            ) : (
+              <button onClick={handlePause} className="p-3 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md transition-transform hover:scale-105" title="Pause">
+                <Pause size={24} fill="currentColor" />
+              </button>
+            )}
+            <button onClick={handleStepForward} className="p-2 rounded-full hover:bg-gray-100 text-gray-700 disabled:opacity-50" disabled={isAnimating && !isPaused}>
+              <StepForward size={20} />
+            </button>
+            <button onClick={handleReset} className="p-2 rounded-full hover:bg-gray-100 text-gray-700 ml-2" title="Reset">
+              <RotateCcw size={20} />
+            </button>
+            <button onClick={resetList} className="ml-2 px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600">Reset List</button>
+          </div>
+
+          <div className="flex-1 w-full max-w-xs flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-600 w-12 text-right">Slow</span>
+            <input
+              type="range"
+              min="10"
+              max="1000"
+              step="10"
+              value={1010 - speed}
+              onChange={(e) => setSpeed(1010 - Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
+            />
+            <span className="text-sm font-medium text-gray-600 w-12">Fast</span>
+          </div>
+
+          {/* Step indicator */}
+          <span className="text-xs text-gray-400 font-mono">Step {currentStep + 1} / {animationSteps.length}</span>
+        </div>
+      )}
+
       {/* Operations Panel */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-3">Try Operations</h3>
@@ -196,50 +240,6 @@ export default function LinkedListOperations() {
           </div>
         )}
       </div>
-
-      {/* Playback Controls */}
-      {animationSteps.length > 0 && (
-        <div className="flex flex-col md:flex-row items-center gap-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <div className="flex items-center gap-2">
-            <button onClick={handleStepBackward} className="p-2 rounded-full hover:bg-gray-100 text-gray-700 disabled:opacity-50" disabled={isAnimating && !isPaused}>
-              <StepBack size={20} />
-            </button>
-            {!isAnimating || isPaused ? (
-              <button onClick={handlePlay} className="p-3 rounded-full bg-[#2563EB] hover:bg-blue-700 text-white shadow-md transition-transform hover:scale-105" title="Play">
-                <Play size={24} fill="currentColor" />
-              </button>
-            ) : (
-              <button onClick={handlePause} className="p-3 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md transition-transform hover:scale-105" title="Pause">
-                <Pause size={24} fill="currentColor" />
-              </button>
-            )}
-            <button onClick={handleStepForward} className="p-2 rounded-full hover:bg-gray-100 text-gray-700 disabled:opacity-50" disabled={isAnimating && !isPaused}>
-              <StepForward size={20} />
-            </button>
-            <button onClick={handleReset} className="p-2 rounded-full hover:bg-gray-100 text-gray-700 ml-2" title="Reset">
-              <RotateCcw size={20} />
-            </button>
-            <button onClick={resetList} className="ml-2 px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600">Reset List</button>
-          </div>
-
-          <div className="flex-1 w-full max-w-xs flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-600 w-12 text-right">Slow</span>
-            <input
-              type="range"
-              min="10"
-              max="1000"
-              step="10"
-              value={1010 - speed}
-              onChange={(e) => setSpeed(1010 - Number(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
-            />
-            <span className="text-sm font-medium text-gray-600 w-12">Fast</span>
-          </div>
-
-          {/* Step indicator */}
-          <span className="text-xs text-gray-400 font-mono">Step {currentStep + 1} / {animationSteps.length}</span>
-        </div>
-      )}
     </div>
   );
 }
