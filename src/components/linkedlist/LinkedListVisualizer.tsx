@@ -51,6 +51,7 @@ export default function LinkedListVisualizer({ type }: Props) {
         step={currentAnimationStep}
         nodes={nodes}
         isCircular={type === 'circular'}
+        isDoubly={type === 'doubly'}
       />
       <LinkedListOperations />
     </div>

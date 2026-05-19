@@ -2,15 +2,16 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { LLAnimationStep } from '@/types/linkedlist.types';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 
 interface Props {
   step: LLAnimationStep | null;
   nodes: { id: string; value: number; address: string; isHighlighted: boolean; isNew: boolean; isDeleting: boolean; isFound: boolean }[];
   isCircular?: boolean;
+  isDoubly?: boolean;
 }
 
-export default function LinkedListCanvas({ step, nodes, isCircular = false }: Props) {
+export default function LinkedListCanvas({ step, nodes, isCircular = false, isDoubly = false }: Props) {
   const displayNodes = step ? step.nodes : nodes;
   const headIndex = step ? step.headIndex : (displayNodes.length > 0 ? 0 : null);
   const currentPointer = step?.currentPointer ?? null;
@@ -59,7 +60,7 @@ export default function LinkedListCanvas({ step, nodes, isCircular = false }: Pr
   return (
     <div className="flex flex-col w-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Legend */}
-      <div className="flex items-center justify-center gap-5 p-3 bg-white border-b border-gray-100 text-xs font-medium text-gray-500">
+      <div className="flex items-center justify-center gap-5 p-3 bg-white border-b border-gray-100 text-xs font-medium text-gray-500 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">V</div>
           <span>Value</span>
@@ -68,6 +69,12 @@ export default function LinkedListCanvas({ step, nodes, isCircular = false }: Pr
           <ArrowRight className="w-4 h-4 text-blue-400" />
           <span>Next Pointer</span>
         </div>
+        {isDoubly && (
+          <div className="flex items-center gap-1.5">
+            <ArrowLeft className="w-4 h-4 text-purple-400" />
+            <span>Prev Pointer</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <div className="w-4 h-1.5 rounded-full bg-gray-300"></div>
           <span>Memory Address</span>
@@ -79,7 +86,7 @@ export default function LinkedListCanvas({ step, nodes, isCircular = false }: Pr
       </div>
 
       {/* Canvas */}
-      <div className="relative min-h-[280px] md:min-h-[320px] w-full p-6 pt-12 bg-gradient-to-b from-slate-50 to-slate-100 shadow-inner overflow-x-auto">
+      <div className="relative min-h-[280px] md:min-h-[340px] w-full p-6 pt-12 bg-gradient-to-b from-slate-50 to-slate-100 shadow-inner overflow-x-auto">
         {/* Log overlay */}
         {step?.logMessage && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-5 py-2 rounded-full border border-blue-100 shadow-md z-30 flex items-center gap-3 max-w-[95%] text-center">
@@ -101,6 +108,15 @@ export default function LinkedListCanvas({ step, nodes, isCircular = false }: Pr
 
         {/* Nodes Row */}
         <div className="flex items-center gap-0 mt-10 px-2 pb-4">
+          {/* NULL before first node for doubly linked list */}
+          {isDoubly && displayNodes.length > 0 && (
+            <div className="flex items-center mx-1 mt-[-18px] flex-shrink-0">
+              <span className="text-xs font-black text-red-500 bg-red-50 px-2 py-1 rounded-md border border-red-200 mr-1">NULL</span>
+              <div className="w-4 h-0.5 bg-purple-300"></div>
+              <ArrowRight className="w-3 h-3 text-purple-400 -ml-0.5" />
+            </div>
+          )}
+
           <AnimatePresence mode="popLayout">
             {displayNodes.map((node, idx) => {
               const style = getNodeStyle(node, idx);
@@ -116,6 +132,12 @@ export default function LinkedListCanvas({ step, nodes, isCircular = false }: Pr
                   {/* Node Card */}
                   <div className="flex flex-col items-center">
                     <div className={`relative flex items-center rounded-xl overflow-hidden ${style.ring} ${style.shadow} transition-all duration-300`}>
+                      {/* Prev Pointer Section (Doubly only) */}
+                      {isDoubly && (
+                        <div className="w-7 h-14 md:w-8 md:h-16 bg-purple-900 flex items-center justify-center border-r-2 border-purple-700">
+                          <div className="w-2.5 h-2.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]"></div>
+                        </div>
+                      )}
                       {/* Value Section */}
                       <div className={`w-14 h-14 md:w-16 md:h-16 ${style.bg} flex items-center justify-center transition-colors duration-300`}>
                         <span className="text-white font-black text-lg md:text-xl drop-shadow-md">{node.value}</span>
@@ -127,19 +149,38 @@ export default function LinkedListCanvas({ step, nodes, isCircular = false }: Pr
                       {/* Glass overlay */}
                       <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none"></div>
                     </div>
+
+                    {/* Labels under each section for doubly */}
+                    {isDoubly && (
+                      <div className="flex text-[8px] font-bold text-gray-400 mt-0.5 w-full">
+                        <span className="flex-1 text-center text-purple-400">prev</span>
+                        <span className="flex-1 text-center text-gray-500">data</span>
+                        <span className="flex-1 text-center text-amber-500">next</span>
+                      </div>
+                    )}
                     {/* Memory Address */}
-                    <span className="text-[10px] font-mono text-gray-400 mt-1.5 font-semibold">{node.address}</span>
+                    <span className="text-[10px] font-mono text-gray-400 mt-1 font-semibold">{node.address}</span>
                   </div>
 
-                  {/* Arrow to next node */}
+                  {/* Arrows between nodes */}
                   {idx < displayNodes.length - 1 && (
-                    <div className="flex items-center mx-1 mt-[-18px]">
-                      <div className="w-6 md:w-8 h-0.5 bg-blue-300"></div>
-                      <ArrowRight className="w-4 h-4 text-blue-400 -ml-1" />
+                    <div className="flex flex-col items-center mx-1 mt-[-18px] gap-0.5">
+                      {/* Forward arrow (next) */}
+                      <div className="flex items-center">
+                        <div className="w-4 md:w-6 h-0.5 bg-blue-300"></div>
+                        <ArrowRight className="w-3 h-3 text-blue-400 -ml-0.5" />
+                      </div>
+                      {/* Backward arrow (prev) — only for doubly */}
+                      {isDoubly && (
+                        <div className="flex items-center">
+                          <ArrowLeft className="w-3 h-3 text-purple-400 -mr-0.5" />
+                          <div className="w-4 md:w-6 h-0.5 bg-purple-300"></div>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* NULL at end */}
+                  {/* NULL at end (singly and doubly) */}
                   {idx === displayNodes.length - 1 && !isCircular && (
                     <div className="flex items-center mx-1 mt-[-18px]">
                       <div className="w-4 h-0.5 bg-gray-300"></div>
