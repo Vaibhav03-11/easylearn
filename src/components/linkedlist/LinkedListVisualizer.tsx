@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLinkedListStore } from '@/store/linkedListStore';
 import LinkedListCanvas from './LinkedListCanvas';
 import LinkedListOperations from './LinkedListOperations';
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export default function LinkedListVisualizer({ type }: Props) {
+  const [isMounted, setIsMounted] = useState(false);
   const {
     nodes,
     animationSteps,
@@ -22,6 +23,10 @@ export default function LinkedListVisualizer({ type }: Props) {
     setCurrentStep,
     setIsAnimating,
   } = useLinkedListStore();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -45,6 +50,10 @@ export default function LinkedListVisualizer({ type }: Props) {
   }, [isAnimating, isPaused, speed, animationSteps.length, setCurrentStep, setIsAnimating]);
 
   const currentAnimationStep = animationSteps[currentStep] || null;
+
+  if (!isMounted) {
+    return <div className="h-[400px] w-full flex items-center justify-center bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse text-gray-400 font-medium">Loading visualizer...</div>;
+  }
 
   return (
     <div className="w-full flex flex-col items-center">

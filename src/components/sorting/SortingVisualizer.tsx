@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useSorting } from '@/hooks/useSorting';
 import BarChart from './BarChart';
 import Controls from './Controls';
@@ -22,7 +23,17 @@ export default function SortingVisualizer({ algorithm }: Props) {
     currentAnimationStep 
   } = useSorting(algorithm);
 
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const maxValue = Math.max(...(currentAnimationStep.array.length ? currentAnimationStep.array : [100]));
+
+  if (!isMounted) {
+    return <div className="h-[400px] w-full flex items-center justify-center bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse text-gray-400 font-medium">Loading sorting visualizer...</div>;
+  }
 
   return (
     <div className="w-full flex flex-col items-center">

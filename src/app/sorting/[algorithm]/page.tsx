@@ -2,11 +2,16 @@
 
 import { useParams } from "next/navigation";
 import { sortingAlgorithmsData } from "@/constants/sortingData";
-import SortingVisualizer from "@/components/sorting/SortingVisualizer";
+import dynamic from "next/dynamic";
 import ComplexityCard from "@/components/sorting/ComplexityCard";
 import { SortingAlgorithmType } from "@/types/sorting.types";
 import { useSortingStore } from "@/store/sortingStore";
 import { useEffect } from "react";
+
+const SortingVisualizer = dynamic(() => import("@/components/sorting/SortingVisualizer"), {
+  ssr: false,
+  loading: () => <div className="h-[400px] w-full flex items-center justify-center bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse text-gray-400 font-medium">Loading visualizer...</div>
+});
 
 export default function AlgorithmPage() {
   const params = useParams();

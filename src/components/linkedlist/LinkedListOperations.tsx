@@ -146,11 +146,11 @@ export default function LinkedListOperations() {
             <span className="text-sm font-medium text-gray-600 w-12 text-right">Slow</span>
             <input
               type="range"
-              min="10"
-              max="1000"
-              step="10"
-              value={1010 - speed}
-              onChange={(e) => setSpeed(1010 - Number(e.target.value))}
+              min="100"
+              max="3000"
+              step="100"
+              value={3100 - speed}
+              onChange={(e) => setSpeed(3100 - Number(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
             />
             <span className="text-sm font-medium text-gray-600 w-12">Fast</span>
